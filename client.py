@@ -59,9 +59,7 @@ def recibir_mensajes():
                 if remitente not in ventanas_privadas:
                     text_box = crear_ventana_chat_privado(remitente)
                 else:
-                    print("eNTRA AL ELES")
-                    text_box = ventanas_privadas["remitente"]["chatbox"]
-                    print(text_box)
+                    text_box = ventanas_privadas[remitente]["chatbox"]
 
                 #Agrega el mensaje al cuadro de texto del chat privado
                 text_box.config(state=tk.NORMAL)
