@@ -5,6 +5,7 @@ import socket
 import threading
 import json
 import time
+import base64
 
 # Configura el servidor
 HOST = 'localhost'
@@ -72,17 +73,24 @@ def manejar_cliente(cliente_socket):
                 mensaje = mensaje[14:]
                 mensaje_json = json.loads(mensaje)
                 nombre_destinatario = mensaje_json["destinatario"]
-                archivo = mensaje_json["archivo"]
-                mensaje_con_nombre = f"{nombre}: {archivo}"
-                print(mensaje_privado)
+                archivos_info = mensaje_json["archivos"]  # Cambiar "archivo" a "archivos"
                 indice_destinatario = nombres_clientes.index(nombre_destinatario)
                 socket_destinatario = clientes[indice_destinatario]
-                mensaje_json = {
-                    "remitente" : nombre,
-                    "archivo" : mensaje_con_nombre
-                }
-                mensaje_json = json.dumps(mensaje_json)
-                socket_destinatario.send(("MENSAJEPRIVADO:" + mensaje_json).encode('utf-8'))
+
+                for archivo in archivos_info:
+                    nombre_archivo = archivo["nombre"]
+                    contenido_archivo = archivo["contenido"].encode('latin1')  # Codificar el contenido como bytes
+
+                    mensaje_json = {
+                        "remitente": nombre,
+                        "archivo": {
+                            "nombre": nombre_archivo,
+                            "contenido": contenido_archivo.decode('latin1')  # Decodificar el contenido binario a una cadena
+                        },
+                        "mensaje": f"{nombre}: te ha enviado un archivo!"
+                    }
+                    mensaje_json = json.dumps(mensaje_json)
+                    socket_destinatario.send(("MENSAJEPRIVADO:" + mensaje_json).encode('utf-8'))
             
             elif mensaje.startswith("MENSAJEGRUPAL:"):    
                 mensaje_con_nombre = f"{nombre}: {mensaje[14:]}"

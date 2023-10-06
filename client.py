@@ -8,10 +8,14 @@ from tkinter import simpledialog
 from tkinter import Listbox
 from tkinter import filedialog
 import json
+import base64
+import os
 
 # Configura el cliente
 HOST = 'localhost'
 PORT = 8090
+
+RUTA = "C:\\Users\\samys\\OneDrive\\Escritorio\\pruebaFTP\\"
 
 # Crear un diccionario para almacenar las ventanas de chat privado
 ventanas_privadas = {}
@@ -50,10 +54,22 @@ def recibir_mensajes():
             elif mensaje.startswith("MENSAJEPRIVADO:"):
                 mensaje_json = json.loads(mensaje[15:])  # Elimina la etiqueta "MENSAJEPRIVADO:"
                 remitente = mensaje_json["remitente"]
+
                 if "archivo" in mensaje_json:
-                    mensaje_texto = mensaje_json["archivo"]
+                    print("LLego un archivo")
+                    archivo_info = mensaje_json["archivo"]
+                    nombre_archivo = archivo_info["nombre"]
+                    contenido_archivo = archivo_info["contenido"].encode('latin1')  # Codificar el contenido como bytes
+
+                    ruta_destino = RUTA + nombre_archivo
+                    # Guardar el archivo recibido en el sistema
+                    with open(ruta_destino, "wb") as file:
+                        file.write(contenido_archivo)
+                    mensaje_texto = mensaje_json["mensaje"]
+
                 else:
                     mensaje_texto = mensaje_json["mensaje"]
+
                 print(mensaje_texto) 
 
                 if remitente not in ventanas_privadas:
@@ -162,14 +178,30 @@ def crear_ventana_chat_privado(nombre_usuario):
             mensaje_var.set("")
     
     def enviar_archivo():
-        archivo = filedialog.askopenfilenames()
-        if archivo:
+        archivos = filedialog.askopenfilenames()
+        if archivos:
+            contenido_archivos = []
+            for archivo in archivos:
+                with open(archivo, "rb") as file:
+                    archivo_contenido = file.read()
+                    contenido_archivos.append(archivo_contenido)
+
+            archivos_info = []
+            for archivo, contenido in zip(archivos, contenido_archivos):
+                nombre_archivo = archivo.split("/")[-1]  # Obtener el nombre del archivo sin la ruta completa
+                archivo_info = {
+                    "nombre": nombre_archivo,
+                    "contenido": contenido.decode('latin1')  # Decodificar el contenido binario a una cadena
+                }
+                archivos_info.append(archivo_info)
+
             mensaje_completo = {
-                "destinatario" : nombre_usuario,
-                "archivo" : archivo
+                "destinatario": nombre_usuario,
+                "archivos": archivos_info  # Cambiar "archivo" a "archivos" para enviar la lista de archivos
             }
-        mensaje_completo = json.dumps(mensaje_completo)
-        cliente_socket.send(("ENVIARARCHIVO:" + mensaje_completo).encode('utf-8'))
+            mensaje_completo = json.dumps(mensaje_completo)
+            cliente_socket.send(("ENVIARARCHIVO:" + mensaje_completo).encode('utf-8'))
+
         
     ventanas_privadas[nombre_usuario] = {
         "ventana" : ventana_chat_privado,
